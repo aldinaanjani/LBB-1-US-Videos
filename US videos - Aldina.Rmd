@@ -1,0 +1,261 @@
+---
+title: "About US Videos"
+author: "Aldina Anjani"
+date: "1/28/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### About US Videos
+
+US Videos merupakan sebuah kumpulan data yang didalamnya terdapat beberapa kolom yang berisikan data mengenai judul video, nama channel dan kategori, jumlah likes, dislikes, komentar dan views, tanggal publikasi dan trending sampai ke kolom mengenai apakah video dihapus atau error, rating video dan kolom komentar tidak diaktifkan.
+
+
+# Background {.tabset}
+## Input Data 
+```{r}
+usvids <- read.csv("USvideos.csv")
+usvids
+```
+# Data Inspect and Cleaning
+### Inspect Data
+Ada beberapa cara yang dapat digunakan untuk melihat data teratas dan data terbawah, kita dapat menggunakan 'head' dan 'tail'.
+```{r}
+head(usvids)
+```
+```{r}
+tail(usvids)
+```
+## Data Cleaning 
+Kemudian pada bagian ini kita dapat mengetahui informasi terkait dari data yang kita miliki. Tentunya kita dapat menggunakan beberapa code diantaranya seperti berikut :
+```{r}
+str(usvids)
+```
+Kemudian setelah kita dapat mengetahui ada kolom apa saja dan tipe karakter seperti apa, maka kita dapat mengubahnya apabila tipe datanya belum sesuai. Pengubahan tipe data dari yang belum sesuai dapat dilakukan dengan cara seperti berikut :
+
+**Hasil Observasi tipe data**
+- category_id -> diubah dari tipe chr menjadi factor
+- publish_time -> diubah dari tipe chr menjadi POSIXct
+- trending_date -> diubah dari tipe chr menjadi tanggal
+
+Untuk mengubah atau memanipulasi data menjadi tanggal, kita dapat memanfaatkan library 'lubridate'. Library 'lubridate' dapat dimanfaatkan untuk mengubah format datanya menjadi tanggal atau waktu
+
+```{r}
+#install packages lubridate
+library(lubridate)
+```
+'lubridate' memiliki code yang berbeda dengan R, apabila kita menggunakan 'lubridate' maka kita hanya perlu untuk menyingkat format tanggalnya
+```{r}
+ydm(head(vids$trending_date))
+```
+```{r}
+vids$trending_date <- ydm(vids$trending_date)
+```
+```{r}
+ymd_hms(head(vids$publish_time))
+```
+```{r}
+vids$category_id <- as.factor(vids$category_id)
+```
+
+## Data Explanation 
+```{r}
+summary(usvids)
+```
+## Data Manipulation
+Pada tahap ini kita dapat melakukan manipulasi pada data yang kita miliki.
+
+Kita dapat membuat kolom-kolom yang diperlukan terlebih dahulu apabila belum tersedia seperti membuat kolom publish date, kolom time to trend dan kolom publish when
+```{r}
+vids$publish_date <- date(vids$publish_time)
+```
+```{r}
+vids$time_to_trend <- vids$trending_date - vids$publish_date
+```
+Kemudian, kita dapat melanjutkan membuat kolom baru bernama publish when namun sebelumnya kita perlu untuk mengkategorikan jam
+
+Kita dapat mengkategorikan `publish_hour` menjadi 3 kategori:
+
+* 12am to 7am (fajar)
+* 7am to 4pm (jam kerja)
+* 4pm to 12am (senja)
+```{r}
+convert_hour <- function(x){
+  
+  if (x >= 0 & x <= 7) { 
+    x <- "12am to 7am"
+  }
+  else if (x > 8 & x <= 16) {
+    x <- "7am to 4pm"
+  }
+  else {
+    x <- "4pm to 12am"
+  }
+  
+  # memberikan output
+  return(x)
+}
+```
+```{r}
+convert_hour(17)
+```
+```{r}
+convert_hour(head(vids$publish_hour))
+```
+
+
+```{r}
+vids$publish_when <- sapply(vids$publish_hour, convert_hour)
+```
+Setelah membuat kolom-kolom terbaru, kita dapat mengecek kembali data yang kita miliki
+```{r}
+head(vids)
+```
+Apabila kita mengambil pada seluruh observasi maka kita dapat menggunakan 'sapply' dan mengubah tipe data `vids$category_id' menjadi chr
+
+Notes : 'sapply' merupakan salah satu fungsi yang dimiliki R
+```{r}
+vids$category_id <- sapply(X = as.character(vids$category_id), # Data
+                           FUN = switch, # Function
+                           
+                           # Glossary atau kamus
+                           "1" = "Film and Animation",
+                           "2" = "Autos and Vehicles", 
+                           "10" = "Music", 
+                           "15" = "Pets and Animals", 
+                           "17" = "Sports",
+                           "19" = "Travel and Events", 
+                           "20" = "Gaming", 
+                           "22" = "People and Blogs", 
+                           "23" = "Comedy",
+                           "24" = "Entertainment", 
+                           "25" = "News and Politics",
+                           "26" = "Howto and Style", 
+                           "27" = "Education",
+                           "28" = "Science and Technology", 
+                           "29" = "Nonprofit and Activism",
+                           "43" = "Shows")
+
+vids
+```
+Kemudian kita perlu untuk mengubah tipe data `vids$category_id' menjadi factor
+```{r}
+vids$category_id <- as.factor(vids$category_id)
+head(vids)
+```
+Kemudian apabila kita ingin mengambil *satu observasi* untuk setiap judulnya maka kita dapat membuat sebuah data baru untuk dapat mengetahui judul video uniknya
+
+```{r}
+vids[order(vids$title),]
+```
+Sebelum kita dapat melihat jadwal postingan yang tepat dari data 'vids unik', kita dapat mengecek kembali data yang kita miliki, apabila masih ada yang perlu untuk diubah maka dapat diubah terlebih dahulu
+
+Hal yang dapat dilakukan pertama kali adalah dengan mengubah urutan pada kolom trending_date agar dapat ditampilkan berurutan
+
+```{r}
+trending_date <- vids[order(vids$trending_date),]
+```
+Kemudian kita dapat membuat kolom baru yaitu kolom 'engagement' dan 'likes per view' agar mempermudah kita untuk dapat mengidentifikasi kapan jadwal posting yang tepat
+
+```{r}
+index_unik <- match(unique(trending_date$title), trending_date$title)
+vids.unik <- trending_date[index_unik, ]
+head(vids.unik)
+```
+```{r}
+vids.unik$likes_per_view <- vids.unik$likes/vids.unik$views
+vids.unik$comment_per_view <- vids.unik$comment_count / vids.unik$views
+```
+Setelah memastikan data yang kita miliki sudah lengkap dan tepat maka kita dapat membuat visualisasi yang dapat dilakukan dengan 2 cara, yaitu dapat dilakukan dengan base R atau menggunakan 'ggplot'. Kita dapat melakukan visualisasi dengan menggunakan base R terlebih dahulu
+
+```{r}
+boxplot(likes_per_view ~ publish_hour, data = vids.unik)
+```
+**Jawaban: Sebaiknya melakukan upload video pada jam 0 atau 12 malam, ataupun pada jam 18 karena memiliki nilai median yang tinggi**
+
+Dari base R pun kita dapat memanfaatkan fungsi 'plot()'. Setiap plot yang dihasilkan dengan menggunakan `plot()` maka dapat berubah menyesuaikan dengan tipe data yang akan dimasukkan tergantung juga dari ada berapa variabel dengan tipe data seperti apa
+
+Kemudian bagaimana apabila kita ingin mengetahui ada berapa Likes per views tertinggi yang juga memiliki Dislikes per views yang tinggi dari beberapa category seperti Gaming & Travel and Events?
+
+```{r}
+client <- vids.unik[vids.unik$category_id %in% c("Gaming", "Travel and Events"), ]
+head(client)
+```
+```{r}
+client$dislikes_per_view <- client$dislikes/client$views
+client$category_id <- droplevels(client$category_id)
+
+
+plot(x = client$likes_per_view, 
+     y = client$dislikes_per_view, 
+     col = client$category_id) 
+legend("topright", 
+       fill = 1:3, 
+       legend = levels(client$category_id) 
+       )
+```
+Kita juga dapat memanfaatkan fungsi 'ggplot' apabila ingin menemukan top 10 youtuber dari kategori sebelumnya maka kita dapat melakukan agregasi terlebih dahulu kemudian mengurutkan data yang dimiliki
+
+```{r}
+data_agg <- aggregate(likes_per_view ~ channel_title + category_id, 
+                      data = client, FUN = mean)
+
+vids_urut <- data_agg[order(data_agg$likes_per_view, decreasing = T), ]
+
+data_viz <- head(vids_urut, 10)
+```
+Setelah itu kita dapat membuat visualisasinya
+
+```{r}
+ggplot(data = data_viz, 
+       mapping = aes(x = likes_per_view,
+                     y = reorder(channel_title, likes_per_view))) +
+  geom_col(mapping = aes(fill = category_id)) +
+  geom_text(aes(label = round(likes_per_view,2),
+            x = likes_per_view/2), 
+            size = 3) +
+  labs(x = "Likes per View",
+       y = NULL,
+       title = "Top 10 channel title",
+       subtitle = "from Gaming and Travels",
+       fill = "Category") + 
+  scale_fill_manual(values = c("maroon", "slateblue4", "lightblue2")) +
+  scale_y_discrete(labels = wrap_format(25)) + 
+  scale_x_continuous(breaks = seq(0, 0.15, 0.03)) + 
+  theme_economist_white()+
+  theme(plot.title = element_text(hjust = 0.3, colour="black"),
+        plot.subtitle = element_text(hjust = 0.3, colour = "brown"),
+        legend.title = element_text(hjust = 0.5, colour = "snow4"),
+        legend.background = element_rect(fill="snow"),
+        legend.text = element_text(size = 7),
+        panel.background = element_rect(fill = "lightblue"),
+        plot.background = element_rect(fill = "snow"),
+        axis.text.y = element_text(size = 7))
+```
+Kita juga dapat membuat sebuah visualisais untuk dapat melihat hubungan antar Likes per View dengan Dislikes per View
+
+```{r}
+vids.unik$dislikes_per_view <- vids.unik$dislikes/vids.unik$views
+```
+Apabila ingin menampilkan visualisasi menggunakan 'ggplot' maka jangan lupa untuk menginstall library 'ggplot'
+```{r}
+library(ggplot2)
+```
+```{r}
+ggplot(data = vids.unik, mapping = aes(x = likes_per_view,
+                                       y = comment_per_view,
+                                       size = dislikes_per_view)) +
+  geom_point(col = "maroon", alpha = 0.5) +
+  geom_smooth(show.legend = F) +
+  labs(title = "Hubungan Likes per View dengan Dislikes per View",
+       x = "Likes per View",
+       y = "Comments per View",
+       size = "Dislikes per View") +
+  theme_minimal()
+```
+## Explanatory Text and Business Problem
+Setiap data tentunya perlu untuk diolah melalu beberapa tahap terlebih dahulu yang nantinya dapat digunakan untuk menjawab pertanyan bisnis dari klien. 
+
+Pada data US Videos yang telah kita olah sebelumnya, kita dapat mengetahui bahwa terdapat waktu-waktu tertentu untuk dapat melakukan publikasi video, publikasi dapat dilakukan jam 12 malam atau jam 6 sore. Kemudian apabila kita ingin melihat hanya pada beberapa hasil observasi, kita juga dapat mengetahui posisi teratasnya. Seperti kita dapat mengetahui posisi Youtuber teratas pada kategori Gaming diduduki oleh DanAndPhilGAMES, pada kategori Travel and Events diduduki oleh Cloth Map. Lalu kita juga dapat menjawab pertanyaan yang ingin diketahui seperti apakah likes per view dan comment per view berhubungan dengan dislikes per viewnya. 
